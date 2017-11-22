@@ -59,6 +59,7 @@ window.handleSubmit = function (id) {
   $.post(`./${id}`, { username, password }, (data) => {
     document.cookie = `username=${username}`
     document.cookie = `_id=${data._id}`
+    this.location = window.location.href;
   });
 }
 

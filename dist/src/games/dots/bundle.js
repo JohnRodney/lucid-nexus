@@ -250,6 +250,8 @@
 
     var _inventoryManager2 = _interopRequireDefault(_inventoryManager);
 
+    var _utilityFunctions = require('./utilities/utility-functions');
+
     function _interopRequireDefault(obj) {
       return obj && obj.__esModule ? obj : { default: obj };
     }
@@ -264,6 +266,8 @@
       function Game() {
         _classCallCheck(this, Game);
 
+        this.username = (0, _utilityFunctions.getCookie)('username');
+        this._id = (0, _utilityFunctions.getCookie)('_id');
         this.animationManager = new _animationManager2.default();
         this.inventoryManager = new _inventoryManager2.default();
         this.inputManger = new _inputManager2.default(this);
@@ -293,6 +297,8 @@
       }, {
         key: 'render',
         value: function render() {
+          var ctx = this.ctx;
+
           if (this.state === 'main-menu') {
             this.gameMenu();
           } else if (this.state === 'start-survival') {
@@ -304,6 +310,12 @@
             this.run();
             return false;
           }
+          ctx.beginPath();
+          ctx.fillStyle = 'yellow';
+          ctx.font = "30px Indie Flower, cursive";
+          ctx.fillText('Player: ' + this.username, this.canvas.width / 2, 100);
+          ctx.closePath();
+
           requestAnimationFrame(this.render.bind(this));
         }
       }, {
@@ -319,7 +331,7 @@
     }();
 
     exports.default = Game;
-  }, { "./dot": 2, "./menu": 4, "./player": 5, "./survival": 6, "./utilities/animation-manager": 7, "./utilities/input-manager": 8, "./utilities/inventory-manager": 9 }], 4: [function (require, module, exports) {
+  }, { "./dot": 2, "./menu": 4, "./player": 5, "./survival": 6, "./utilities/animation-manager": 7, "./utilities/input-manager": 8, "./utilities/inventory-manager": 9, "./utilities/utility-functions": 12 }], 4: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -652,6 +664,11 @@
                 dot.destroy = true;
               } else {
                 _this.game.state = 'gameover';
+                if (_this.game.username && _this.game._id) {
+                  $.post(window.location.origin + '/dots/highscore', { username: _this.game.username, playerId: _this.game._id, score: _this.player.radius }, function (data) {
+                    console.log(data, 'posted high score');
+                  });
+                }
               }
             }
             if ((0, _utilityFunctions.offscreen)(dot)) {
@@ -862,14 +879,31 @@
 
     exports.default = TextAnimation;
   }, {}], 12: [function (require, module, exports) {
-    "use strict";
+    'use strict';
 
     Object.defineProperty(exports, "__esModule", {
       value: true
     });
     exports.offscreen = offscreen;
+    exports.getCookie = getCookie;
     function offscreen(dot) {
       return dot.x + dot.radius < 0 || dot.y + dot.radius < 0 || dot.x - dot.radius > document.body.clientWidth * 2 || dot.y - dot.radius > document.body.clientHeight * 2;
+    }
+
+    function getCookie(cname) {
+      var name = cname + "=";
+      var decodedCookie = decodeURIComponent(document.cookie);
+      var ca = decodedCookie.split(';');
+      for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+          c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+          return c.substring(name.length, c.length);
+        }
+      }
+      return "";
     }
   }, {}], 13: [function (require, module, exports) {
     'use strict';

@@ -39,12 +39,20 @@ router.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../src/main/', 'index.html'));
 });
 
+router.get('/dots/highscores', (req, res) => {
+
+  MongoClient.connect(devMongoURI)
+    .then((connectedDb) => connectedDb.collection('dots').find().sort({ score: -1 }).toArray())
+    .then(result => res.send(result))
+    .catch(err => console.log('error while fetching currency data', err));
+});
+
 router.post('/sign-up', (req, res) => {
   const { body } = req;
 
   MongoClient.connect(devMongoURI)
     .then((connectedDb) => connectedDb.collection('users').insert(body))
-    .then(result => res.send(result))
+    .then(result => res.send(result.ops[0]))
     .catch(err => console.log('error while fetching currency data', err));
 });
 
@@ -60,6 +68,15 @@ router.post('/login', (req, res) => {
         res.send({ error: 'incorrect username or password' });
       }
     })
+    .catch(err => console.log('error while fetching currency data', err));
+});
+
+router.post('/dots/highscore', (req, res) => {
+  const { body } = req;
+
+  MongoClient.connect(devMongoURI)
+    .then((connectedDb) => connectedDb.collection('dots').insert(body))
+    .then(result => res.send(result.ops[0]))
     .catch(err => console.log('error while fetching currency data', err));
 });
 

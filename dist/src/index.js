@@ -58,6 +58,17 @@ router.get('/', function (req, res) {
   res.sendFile(_path2.default.join(__dirname, '../../src/main/', 'index.html'));
 });
 
+router.get('/dots/highscores', function (req, res) {
+
+  _mongodb.MongoClient.connect(_devmongo2.default).then(function (connectedDb) {
+    return connectedDb.collection('dots').find().sort({ score: -1 }).toArray();
+  }).then(function (result) {
+    return res.send(result);
+  }).catch(function (err) {
+    return console.log('error while fetching currency data', err);
+  });
+});
+
 router.post('/sign-up', function (req, res) {
   var body = req.body;
 
@@ -65,7 +76,7 @@ router.post('/sign-up', function (req, res) {
   _mongodb.MongoClient.connect(_devmongo2.default).then(function (connectedDb) {
     return connectedDb.collection('users').insert(body);
   }).then(function (result) {
-    return res.send(result);
+    return res.send(result.ops[0]);
   }).catch(function (err) {
     return console.log('error while fetching currency data', err);
   });
@@ -83,6 +94,19 @@ router.post('/login', function (req, res) {
     } else {
       res.send({ error: 'incorrect username or password' });
     }
+  }).catch(function (err) {
+    return console.log('error while fetching currency data', err);
+  });
+});
+
+router.post('/dots/highscore', function (req, res) {
+  var body = req.body;
+
+
+  _mongodb.MongoClient.connect(_devmongo2.default).then(function (connectedDb) {
+    return connectedDb.collection('dots').insert(body);
+  }).then(function (result) {
+    return res.send(result.ops[0]);
   }).catch(function (err) {
     return console.log('error while fetching currency data', err);
   });

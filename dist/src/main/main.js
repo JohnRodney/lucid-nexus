@@ -30,12 +30,15 @@ function loginLayout() {
 
 window.buttons = [];
 window.handleSubmit = function (id) {
+  var _this = this;
+
   var inputs = Array.prototype.slice.call(document.getElementById(id).getElementsByTagName('input'), 0);
   var username = inputs[0].value;
   var password = inputs[1].value;
   $.post('./' + id, { username: username, password: password }, function (data) {
     document.cookie = 'username=' + username;
     document.cookie = '_id=' + data._id;
+    _this.location = window.location.href;
   });
 };
 
