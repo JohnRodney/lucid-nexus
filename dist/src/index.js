@@ -34,12 +34,36 @@ router.get('/dots', function (req, res) {
   res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'index.html'));
 });
 
+router.get('/images/red-devil-skin.png', function (req, res) {
+  res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'red-devil-skin.png'));
+});
+
+router.get('/images/blueface.png', function (req, res) {
+  res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'blueface.png'));
+});
+
+router.get('/images/green-goat.png', function (req, res) {
+  res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'green-goat.png'));
+});
+
 router.get('/dots/bundle.js', function (req, res) {
   res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'bundle.js'));
 });
 
 router.get('/dots/styles.css', function (req, res) {
   res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'styles.css'));
+});
+
+router.get('/tictactoe', function (req, res) {
+  res.sendFile(_path2.default.join(__dirname, '../../src/games/tictactoe/', 'index.html'));
+});
+
+router.get('/tictactoe/index.js', function (req, res) {
+  res.sendFile(_path2.default.join(__dirname, '../../src/games/tictactoe/', 'index.js'));
+});
+
+router.get('/tictactoe/styles.css', function (req, res) {
+  res.sendFile(_path2.default.join(__dirname, '../../src/games/tictactoe/', 'styles.css'));
 });
 
 router.get('/intro-sample.mov', function (req, res) {
@@ -61,14 +85,15 @@ router.get('/', function (req, res) {
 router.get('/dots/highscores', function (req, res) {
 
   _mongodb.MongoClient.connect(_devmongo2.default).then(function (connectedDb) {
-    return connectedDb.collection('dots').find().sort({ score: -1 }).toArray();
+    return connectedDb.collection('dots').find().toArray();
   }).then(function (result) {
-    return res.send(result);
+    return res.send(result.sort(function (a, b) {
+      return parseFloat(a.score) - parseFloat(b.score);
+    }).reverse());
   }).catch(function (err) {
     return console.log('error while fetching currency data', err);
   });
 });
-
 router.post('/sign-up', function (req, res) {
   var body = req.body;
 

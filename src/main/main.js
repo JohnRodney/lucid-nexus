@@ -33,6 +33,7 @@ function gamesLayout() {
     <ul>
       <li>
         <a href='./dots'>Dots</a>
+        <a href='./tictactoe'>Tictactoe</a>
       </li>
     </ul>
   `;

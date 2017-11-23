@@ -1,0 +1,39 @@
+*{
+  margin: 0;
+  padding: 0;
+}
+body{
+  font-size: 40px;
+}
+.tictactoe-board{
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 500px;
+  padding: 100px 20px;
+  box-sizing: border-box;
+}
+.tictactoe-board div{
+  text-align: center;
+  font-size: 60px;
+  vertical-align: top;
+  width: calc(32% - 1px);
+  height: 100px;
+  display: inline-block;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.top-left, .top-mid, .mid-left, .mid-mid{
+  border-right: 1px solid black;
+  border-bottom: 1px solid black;
+}
+.top-right, .mid-right{
+  border-bottom: 1px solid black;
+}
+.bottom-left, .bottom-mid{
+  border-right: 1px solid black;
+}

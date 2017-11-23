@@ -15,12 +15,36 @@ router.get('/dots', (req, res) => {
   res.sendFile(path.join(__dirname, '../../src/games/dots/', 'index.html'));
 });
 
+router.get('/images/red-devil-skin.png', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../src/games/dots/', 'red-devil-skin.png'));
+});
+
+router.get('/images/blueface.png', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../src/games/dots/', 'blueface.png'));
+});
+
+router.get('/images/green-goat.png', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../src/games/dots/', 'green-goat.png'));
+});
+
 router.get('/dots/bundle.js', (req, res) => {
   res.sendFile(path.join(__dirname, '../../src/games/dots/', 'bundle.js'));
 });
 
 router.get('/dots/styles.css', (req, res) => {
   res.sendFile(path.join(__dirname, '../../src/games/dots/', 'styles.css'));
+});
+
+router.get('/tictactoe', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../src/games/tictactoe/', 'index.html'));
+});
+
+router.get('/tictactoe/index.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../src/games/tictactoe/', 'index.js'));
+});
+
+router.get('/tictactoe/styles.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../src/games/tictactoe/', 'styles.css'));
 });
 
 router.get('/intro-sample.mov', (req, res) => {
@@ -42,11 +66,12 @@ router.get('/', (req, res) => {
 router.get('/dots/highscores', (req, res) => {
 
   MongoClient.connect(devMongoURI)
-    .then((connectedDb) => connectedDb.collection('dots').find().sort({ score: -1 }).toArray())
-    .then(result => res.send(result))
+    .then((connectedDb) => connectedDb.collection('dots').find().toArray())
+    .then(result => res.send(result.sort(function(a, b) {
+    return parseFloat(a.score) - parseFloat(b.score);
+}).reverse()))
     .catch(err => console.log('error while fetching currency data', err));
 });
-
 router.post('/sign-up', (req, res) => {
   const { body } = req;
 

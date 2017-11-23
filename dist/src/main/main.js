@@ -21,7 +21,7 @@ function signUpLayout() {
 }
 
 function gamesLayout() {
-  return '\n    <p>Games</p>\n    <ul>\n      <li>\n        <a href=\'./dots\'>Dots</a>\n      </li>\n    </ul>\n  ';
+  return '\n    <p>Games</p>\n    <ul>\n      <li>\n        <a href=\'./dots\'>Dots</a>\n        <a href=\'./tictactoe\'>Tictactoe</a>\n      </li>\n    </ul>\n  ';
 }
 
 function loginLayout() {
