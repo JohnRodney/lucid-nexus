@@ -34,16 +34,10 @@ router.get('/dots', function (req, res) {
   res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'index.html'));
 });
 
-router.get('/images/red-devil-skin.png', function (req, res) {
-  res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'red-devil-skin.png'));
-});
-
-router.get('/images/blueface.png', function (req, res) {
-  res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'blueface.png'));
-});
-
-router.get('/images/green-goat.png', function (req, res) {
-  res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', 'green-goat.png'));
+['red-devil-skin.png', 'blueface.png', 'green-goat.png', 'coin.png', 'helium.png', 'hydrogen.png', 'lithium.png', 'beryllium.png'].forEach(function (image) {
+  router.get('/images/' + image, function (req, res) {
+    res.sendFile(_path2.default.join(__dirname, '../../src/games/dots/', image));
+  });
 });
 
 router.get('/dots/bundle.js', function (req, res) {
@@ -94,6 +88,20 @@ router.get('/dots/highscores', function (req, res) {
     return console.log('error while fetching currency data', err);
   });
 });
+
+router.post('/dots/get-player', function (req, res) {
+  var body = req.body;
+
+
+  _mongodb.MongoClient.connect(_devmongo2.default).then(function (connectedDb) {
+    return connectedDb.collection('dots-player').find({ _id: body._id }).toArray();
+  }).then(function (result) {
+    return res.send(result);
+  }).catch(function (err) {
+    return console.log('error while fetching currency data', err);
+  });
+});
+
 router.post('/sign-up', function (req, res) {
   var body = req.body;
 
@@ -132,6 +140,19 @@ router.post('/dots/highscore', function (req, res) {
     return connectedDb.collection('dots').insert(body);
   }).then(function (result) {
     return res.send(result.ops[0]);
+  }).catch(function (err) {
+    return console.log('error while fetching currency data', err);
+  });
+});
+
+router.post('/dots/player', function (req, res) {
+  var body = req.body;
+
+
+  _mongodb.MongoClient.connect(_devmongo2.default).then(function (connectedDb) {
+    return connectedDb.collection('dots-player').update({ _id: body._id }, body, { upsert: true });
+  }).then(function (result) {
+    return res.send(result);
   }).catch(function (err) {
     return console.log('error while fetching currency data', err);
   });

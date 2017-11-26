@@ -96,13 +96,18 @@
       }
     }
 
+    function clamp(min, max, number) {
+      return Math.min(Math.max(number, min), max);
+    };
+
     var Dot = function () {
-      function Dot(x, y, radius, startAngle, endAngle) {
+      function Dot(x, y, radius, startAngle, endAngle, game) {
         _classCallCheck(this, Dot);
 
         var floor = Math.floor,
             random = Math.random;
 
+        this.game = game;
         this.scale = 1;
         this.x = x;
         this.y = y;
@@ -119,8 +124,51 @@
       }
 
       _createClass(Dot, [{
-        key: 'move',
-        value: function move(delta) {
+        key: 'moveToPlayer',
+        value: function moveToPlayer(delta, scale) {
+          var game = this.game,
+              x = this.x,
+              y = this.y,
+              radius = this.radius;
+          var abs = Math.abs;
+
+          var isSmallerThanPlayer = radius >= game.player.radius;
+          var xSpeed = abs(this.direction.x);
+          var ySpeed = abs(this.direction.y);
+          var isLeftOfPlayer = x < game.player.x;
+          var isAbovePlayer = y < game.player.y;
+
+          this.direction.x += (game.player.x - x) / this.distance(this) * 50;
+          this.direction.y += (game.player.y - y) / this.distance(this) * 50;
+          this.direction.x = clamp(-1000, 1000, this.direction.x);
+          this.direction.y = clamp(-1000, 1000, this.direction.y);
+          this.x += this.direction.x * delta;
+          this.y += this.direction.y * delta;
+        }
+      }, {
+        key: 'moveFromPlayer',
+        value: function moveFromPlayer(delta, scale) {
+          var game = this.game,
+              x = this.x,
+              y = this.y,
+              radius = this.radius;
+          var abs = Math.abs;
+
+          var xSpeed = abs(this.direction.x);
+          var ySpeed = abs(this.direction.y);
+          var isLeftOfPlayer = x < game.player.x;
+          var isAbovePlayer = y < game.player.y;
+
+          this.direction.x += (game.player.x - x) / this.distance(this) * -100;
+          this.direction.y += (game.player.y - y) / this.distance(this) * -100;
+          this.direction.x = clamp(-1000, 1000, this.direction.x);
+          this.direction.y = clamp(-1000, 1000, this.direction.y);
+          this.x += this.direction.x * delta;
+          this.y += this.direction.y * delta;
+        }
+      }, {
+        key: 'moveNormal',
+        value: function moveNormal(delta, scale) {
           var random = Math.random,
               floor = Math.floor;
 
@@ -132,9 +180,37 @@
           this.y += this.direction.y * delta;
         }
       }, {
+        key: 'move',
+        value: function move(delta, scale) {
+          var radius = this.radius,
+              game = this.game;
+
+          var isBiggerThanPlayer = radius >= game.player.radius;
+          if (isBiggerThanPlayer && this.distance(this) < game.player.radius * 10 * scale && game.repel) {
+            this.moveFromPlayer(delta, scale);
+          } else if (isBiggerThanPlayer) {
+            this.moveNormal(delta, scale);
+          } else if (!isBiggerThanPlayer && this.distance(this) < game.player.radius * 10 * scale && game.gravity) {
+            this.moveToPlayer(delta, scale);
+          } else {
+            this.moveNormal(delta, scale);
+          }
+        }
+      }, {
+        key: 'distance',
+        value: function distance(dot) {
+          var player = this.game.player;
+          var sqrt = Math.sqrt;
+
+          var a = player.x - dot.x;
+          var b = player.y - dot.y;
+
+          return sqrt(a * a + b * b);
+        }
+      }, {
         key: 'randomElement',
         value: function randomElement() {
-          var elements = ['hydrogen', 'helium'];
+          var elements = ['hydrogen', 'helium', 'lithium', 'beryllium'];
           var floor = Math.floor,
               random = Math.random;
 
@@ -171,16 +247,25 @@
               y = this.y,
               radius = this.radius,
               startAngle = this.startAngle,
-              endAngle = this.endAngle;
+              endAngle = this.endAngle,
+              color = this.color,
+              game = this.game;
           var texture = this.texture,
               image = this.image;
 
+          var isDev = window.deployment === 'development';
           if (scale !== this.scale) {
             this.scale = scale;
           }
           ctx.beginPath();
-          ctx.strokeStyle = this.color;
-          ctx.fillStyle = this.color;
+          ctx.fillStyle = radius >= game.player.radius ? 'rgba(255, 0, 0, 0.4)' : 'rgba(0, 255, 0, 0.4)';
+          // ctx.fillRect(x - 10 - radius * scale, y - 10 - radius * scale, radius * 2 * scale + 20, radius * 2 * scale + 20);
+          ctx.closePath();
+
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.fillStyle = color;
           ctx.moveTo(x, y);
           ctx.arc(x, y, radius * scale, startAngle, endAngle);
           ctx.stroke();
@@ -192,7 +277,7 @@
           ctx.shadowOffsetY = 2;
           ctx.stroke();
           ctx.fill();
-          ctx.drawImage(image, this.x - this.radius * texture.xOffSet * scale, this.y - this.radius * texture.yOffSet * scale, this.radius * texture.wOffSet * scale, this.radius * 2 * texture.hOffSet * scale);
+          ctx.drawImage(image, x - radius * texture.xOffSet * scale, y - radius * texture.yOffSet * scale, radius * texture.wOffSet * scale, radius * 2 * texture.hOffSet * scale);
           ctx.closePath();
           // this.shade(ctx, 3, scale);
         }
@@ -230,7 +315,7 @@
     }();
 
     exports.default = Dot;
-  }, { "./colors.js": 1, "./utilities/player-skins": 11, "./utilities/shade-color": 12 }], 3: [function (require, module, exports) {
+  }, { "./colors.js": 1, "./utilities/player-skins": 14, "./utilities/shade-color": 15 }], 3: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -277,6 +362,14 @@
 
     var _utilityFunctions = require('./utilities/utility-functions');
 
+    var _inventoryTextures = require('./utilities/inventory-textures');
+
+    var _inventoryTextures2 = _interopRequireDefault(_inventoryTextures);
+
+    var _store = require('./store');
+
+    var _store2 = _interopRequireDefault(_store);
+
     function _interopRequireDefault(obj) {
       return obj && obj.__esModule ? obj : { default: obj };
     }
@@ -291,17 +384,21 @@
       function Game() {
         _classCallCheck(this, Game);
 
+        this.gravity = false;
+        this.repel = false;
+        this.store = new _store2.default(this);
         this.delta = 0;
         this.lastRender = new Date().getTime();
         this.username = (0, _utilityFunctions.getCookie)('username');
         this._id = (0, _utilityFunctions.getCookie)('_id');
         this.animationManager = new _animationManager2.default();
-        this.inventoryManager = new _inventoryManager2.default();
+        this.inventoryManager = new _inventoryManager2.default(this);
         this.inputManger = new _inputManager2.default(this);
         this.menu = new _menu2.default(this);
         this.state = 'main-menu';
         this.player = new _player2.default();
         this.setupCanvas();
+        this.survival = new _survival2.default(this.player, this);
       }
 
       _createClass(Game, [{
@@ -345,6 +442,7 @@
             ctx.closePath();
             ctx.beginPath();
             ctx.fillStyle = 'yellow';
+            ctx.textBaseline = 'alphabetic';
             ctx.font = "50px Indie Flower, cursive";
             ctx.fillText(i + 1 + '.   ' + score.username + ':   ' + score.score, _this.canvas.width / 2, 60 + startY + scoreHeight * i);
             ctx.closePath();
@@ -352,38 +450,92 @@
           this.player.draw(this.ctx, 5);
         }
       }, {
-        key: 'render',
-        value: function render() {
+        key: 'setDelta',
+        value: function setDelta() {
           var currentTime = new Date().getTime();
           this.delta = (currentTime - this.lastRender) / 1000;
           this.lastRender = currentTime;
-          var ctx = this.ctx;
-
-          if (this.state === 'main-menu') {
-            this.gameMenu();
-          } else if (this.state === 'start-survival') {
-            this.survival = new _survival2.default(this.player, this);
-            this.state = 'survival';
-          } else if (this.state === 'high-scores') {
-            this.renderHighScores();
-          } else if (this.state === 'survival') {
-            this.survival.play();
-          } else if (this.state === 'gameover') {
+        }
+      }, {
+        key: 'stateFunctionHash',
+        value: function stateFunctionHash() {
+          return {
+            'main-menu': this.gameMenu,
+            'start-survival': this.startSurvival,
+            'high-scores': this.renderHighScores,
+            'store': this.renderStore,
+            'survival': this.runSurvival
+          };
+        }
+      }, {
+        key: 'runSurvival',
+        value: function runSurvival() {
+          this.survival.play();
+        }
+      }, {
+        key: 'startSurvival',
+        value: function startSurvival() {
+          this.survival = new _survival2.default(this.player, this);
+          this.state = 'survival';
+        }
+      }, {
+        key: 'render',
+        value: function render() {
+          if (this.state === 'gameover') {
             this.run();
             return false;
           }
 
+          if (this.gravity && this.player.energy - 0.1 > 0) {
+
+            this.player.energy -= 0.1;
+          } else {
+            this.gravity = false;
+          }
+
+          if (this.repel && this.player.energy - 0.1 > 0) {
+            this.player.energy -= 0.1;
+          } else {
+            this.repel = false;
+          }
+
+          if (!this.repel && !this.gravity && this.state === 'survival' && this.player.energy < 100) {
+            this.player.energy += 0.1;
+          }
+
+          this.setDelta();
+          this.stateFunctionHash()[this.state].call(this);
+          this.renderPlayerText();
+          requestAnimationFrame(this.render.bind(this));
+        }
+      }, {
+        key: 'renderPlayerText',
+        value: function renderPlayerText() {
+          var ctx = this.ctx;
+
           ctx.beginPath();
           ctx.fillStyle = 'yellow';
           ctx.font = "30px Indie Flower, cursive";
-          ctx.fillText('Player: ' + this.username, this.canvas.width / 2, 100);
-          ctx.closePath();
+          ctx.fillText('Player: ' + this.username, this.canvas.width / 2, 30);
+          if (this.gravity) {
+            ctx.fillText('G', this.canvas.width / 2, this.canvas.height - 160);
+          }
+          if (this.repel) {
+            ctx.fillText('R', this.canvas.width / 2 + 40, this.canvas.height - 160);
+          }
 
-          requestAnimationFrame(this.render.bind(this));
+          ctx.closePath();
+        }
+      }, {
+        key: 'renderStore',
+        value: function renderStore() {
+          this.store.render();
         }
       }, {
         key: 'run',
         value: function run() {
+          this.gravity = false;
+          this.repel = false;
           this.player = new _player2.default();
           this.state = 'main-menu';
           this.render();
@@ -394,7 +546,7 @@
     }();
 
     exports.default = Game;
-  }, { "./dot": 2, "./menu": 4, "./player": 5, "./survival": 6, "./utilities/animation-manager": 7, "./utilities/input-manager": 8, "./utilities/inventory-manager": 9, "./utilities/utility-functions": 15 }], 4: [function (require, module, exports) {
+  }, { "./dot": 2, "./menu": 4, "./player": 5, "./store": 6, "./survival": 7, "./utilities/animation-manager": 8, "./utilities/input-manager": 9, "./utilities/inventory-manager": 11, "./utilities/inventory-textures": 12, "./utilities/utility-functions": 19 }], 4: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -475,12 +627,16 @@
             return item.collide(x * 2, y * 2);
           }).pop();
 
-          if (parent.state !== 'high-scores' && parent.state !== 'main-menu') {
+          if (parent.state !== 'high-scores' && parent.state !== 'main-menu' && parent.state !== 'store') {
             return false;
           }if (parent.state === 'high-scores') {
             parent.state = "main-menu";
+          } else if (parent.state === 'store') {
+            parent.state = "main-menu";
           } else if (item && item.text === 'Survival') {
             parent.state = 'start-survival';
+          } else if (item.text === 'Store') {
+            parent.state = 'store';
           } else if (item.text === 'High Scores') {
             if (window.deployment === 'development') {
               parent.state = 'high-scores';
@@ -532,7 +688,7 @@
     }();
 
     exports.default = Menu;
-  }, { "./utilities/menu-item": 10, "./utilities/stub-data": 13 }], 5: [function (require, module, exports) {
+  }, { "./utilities/menu-item": 13, "./utilities/stub-data": 16 }], 5: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -571,6 +727,7 @@
 
         this.x = document.body.clientWidth / 2;
         this.y = document.body.clientHeight / 2;
+        this.energy = 100;
         this.radius = 30;
         this.startAngle = 0;
         this.endAngle = 2 * Math.PI;
@@ -596,8 +753,29 @@
               radius = this.radius,
               startAngle = this.startAngle,
               endAngle = this.endAngle;
+          /*ctx.beginPath();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.fillRect(x - radius * scale, y - radius * scale, radius * 2 * scale, radius * 2 * scale);
+          ctx.closePath();*/
+
+          var energyWidth = 600;
+          var energyHeight = 100;
+          var energyX = document.body.clientWidth - energyWidth / 2;
+          var energyY = document.body.clientHeight * 2 - energyHeight - 40;
+          ctx.beginPath();
+          ctx.lineWidth = 10;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.rect(energyX, energyY, energyWidth, energyHeight);
+          ctx.stroke();
+          ctx.closePath();
 
           ctx.beginPath();
+          ctx.fillStyle = 'rgba(0, 200, 255, 0.5)';
+          ctx.fillRect(energyX, energyY, energyWidth * this.energy / 100, energyHeight);
+          ctx.closePath();
+
+          ctx.beginPath();
+          ctx.lineWidth = 1;
           ctx.fillStyle = '#afafaf';
           ctx.moveTo(x, y);
           ctx.shadowColor = 'black';
@@ -619,7 +797,115 @@
     }();
 
     exports.default = Player;
-  }, { "./utilities/player-skins": 11 }], 6: [function (require, module, exports) {
+  }, { "./utilities/player-skins": 14 }], 6: [function (require, module, exports) {
+    'use strict';
+
+    Object.defineProperty(exports, "__esModule", {
+      value: true
+    });
+
+    var _createClass = function () {
+      function defineProperties(target, props) {
+        for (var i = 0; i < props.length; i++) {
+          var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+        }
+      }return function (Constructor, protoProps, staticProps) {
+        if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+      };
+    }();
+
+    var _inventoryTextures = require('./utilities/inventory-textures');
+
+    var _inventoryTextures2 = _interopRequireDefault(_inventoryTextures);
+
+    function _interopRequireDefault(obj) {
+      return obj && obj.__esModule ? obj : { default: obj };
+    }
+
+    function _classCallCheck(instance, Constructor) {
+      if (!(instance instanceof Constructor)) {
+        throw new TypeError("Cannot call a class as a function");
+      }
+    }
+
+    var Store = function () {
+      function Store(game) {
+        _classCallCheck(this, Store);
+
+        this.game = game;
+      }
+
+      _createClass(Store, [{
+        key: 'render',
+        value: function render() {
+          var _game = this.game,
+              ctx = _game.ctx,
+              canvas = _game.canvas,
+              inventoryManager = _game.inventoryManager;
+          var playerInventory = inventoryManager.playerInventory,
+              coins = inventoryManager.coins;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          ctx.beginPath();
+          ctx.fillStyle = 'rgba(100, 255, 255, .3)';
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(255, 255, 255, .9)';
+          ctx.rect(20, 80, String(coins).length * 10 + 400, 130);
+          ctx.stroke();
+          ctx.fill();
+          ctx.closePath();
+          ctx.beginPath();
+          var texture = _inventoryTextures2.default.coin;
+          var image = document.createElement('img');
+          image.src = '' + window.location.origin + texture.path;
+
+          ctx.drawImage(image, 40, 100, 90, 90);
+
+          ctx.fillStyle = 'yellow';
+          ctx.textBaseline = "middle";
+          ctx.font = "70px Indie Flower, cursive";
+          ctx.fillText('' + coins, 300, 150);
+          ctx.closePath();
+
+          playerInventory.forEach(function (item, i) {
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(100, 255, 255, .3)';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(255, 255, 255, .9)';
+            ctx.rect(20, 280 * i + 300, 350, 260);
+            ctx.stroke();
+            ctx.fill();
+            ctx.closePath();
+
+            ctx.beginPath();
+            var texture = _inventoryTextures2.default[item.name];
+            if (texture) {
+              var _image = document.createElement('img');
+              _image.src = '' + window.location.origin + texture.path;
+
+              ctx.drawImage(_image, 30, 280 * i + 300, 180, 180);
+            }
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = 'white';
+            ctx.textBaseline = "top";
+            ctx.font = "50px Indie Flower, cursive";
+            ctx.fillText('' + item.name, 60, 280 * i + 480);
+            ctx.fillText('' + item.quantity, 250, 280 * i + 350);
+            ctx.closePath();
+            ctx.textAlign = 'center';
+          });
+
+          this.game.player.draw(ctx, 3);
+        }
+      }]);
+
+      return Store;
+    }();
+
+    exports.default = Store;
+  }, { "./utilities/inventory-textures": 12 }], 7: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -670,7 +956,7 @@
         this.maxDots = 50;
         this.dots = [];
         for (var i = 0; i < this.maxDots; i++) {
-          this.dots.push(new _dot2.default(this.randomX(), this.randomY(), this.randomRadius(), 0, 2 * Math.PI));
+          this.dots.push(new _dot2.default(this.randomX(), this.randomY(), this.randomRadius(), 0, 2 * Math.PI, this.game));
         }
       }
 
@@ -729,9 +1015,9 @@
           ctx.fillStyle = 'yellow';
           ctx.font = "30px Arial";
           ctx.fillText('Score: ' + player.radius, 100, 50);
-          ctx.fillText('Coins: ' + this.coins, 100, 80);
+          ctx.fillText('Coins: ' + this.game.inventoryManager.coins, 100, 80);
           ctx.font = "100px Indie Flower, cursive";
-          ctx.fillText('Level: ' + this.level, document.body.clientWidth, document.body.clientHeight * 2 - 100);
+          ctx.fillText('Level: ' + this.level, document.body.clientWidth, document.body.clientHeight * 2 - 200);
           this.physics();
           if (this.level * 30 + 30 < this.player.radius * this.scale) {
             this.scale /= 2;
@@ -760,15 +1046,20 @@
             if (_this.distance(dot) <= player.radius * _this.scale + dot.radius * _this.scale) {
               if (player.radius > dot.radius) {
                 player.radius += 1;
-                // this.playerInventory.push(dot.element);
-                if (true) {
+                if (player.energy + 1 < 100) {
+                  player.energy++;
+                } else {
+                  player.energy = 100;
+                }
+                _this.game.inventoryManager.push({ name: dot.element, quantity: 1 });
+                if (_this.game.animationManager.animations.length > 0) {
                   _this.currentCombo += 1;
-                  _this.coins += _this.currentCombo;
-                  _this.game.animationManager.push(new _textAnimation2.default(1000, player.x, player.y, 'Combo: +' + _this.currentCombo + ' ' + dot.element));
+                  _this.game.inventoryManager.addCoins(1 * _this.currentCombo);
+                  _this.game.animationManager.push(new _textAnimation2.default(1000, player.x, player.y, 'Combo: +' + _this.currentCombo + ' Coins and ' + dot.element));
                 } else {
                   _this.currentCombo = 1;
-                  _this.coins += 1;
-                  _this.game.animationManager.push(new _textAnimation2.default(1000, player.x, player.y, '+1 ' + dot.element));
+                  _this.game.inventoryManager.addCoins(1);
+                  _this.game.animationManager.push(new _textAnimation2.default(1000, player.x, player.y, '+1 Coins and ' + dot.element));
                 }
                 dot.destroy = true;
               } else {
@@ -776,6 +1067,16 @@
                 if (_this.game.username && _this.game._id) {
                   $.post(window.location.origin + '/dots/highscore', { username: _this.game.username, playerId: _this.game._id, score: _this.player.radius }, function (data) {
                     console.log(data, 'posted high score');
+                  });
+                  var _game2 = _this.game,
+                      username = _game2.username,
+                      _id = _game2._id;
+                  var _game$inventoryManage = _this.game.inventoryManager,
+                      coins = _game$inventoryManage.coins,
+                      playerInventory = _game$inventoryManage.playerInventory;
+
+                  $.post(window.location.origin + '/dots/player', { username: username, _id: _id, coins: coins, playerInventory: playerInventory }, function (data) {
+                    console.log(data, 'player inventory');
                   });
                 }
               }
@@ -788,10 +1089,10 @@
             return !dot.destroy;
           });
           if (this.dots.length < this.maxDots) {
-            this.dots.push(new _dot2.default(this.randomX(), this.randomY(), this.randomRadius(), 0, 2 * Math.PI));
+            this.dots.push(new _dot2.default(this.randomX(), this.randomY(), this.randomRadius(), 0, 2 * Math.PI, this.game));
           }
           this.dots.forEach(function (dot) {
-            return dot.move(_this.game.delta);
+            return dot.move(_this.game.delta, _this.scale);
           });
         }
       }]);
@@ -800,7 +1101,7 @@
     }();
 
     exports.default = Survival;
-  }, { "./dot": 2, "./utilities/text-animation": 14, "./utilities/utility-functions": 15 }], 7: [function (require, module, exports) {
+  }, { "./dot": 2, "./utilities/text-animation": 18, "./utilities/utility-functions": 19 }], 8: [function (require, module, exports) {
     "use strict";
 
     Object.defineProperty(exports, "__esModule", {
@@ -851,7 +1152,7 @@
     }();
 
     exports.default = AnimationManager;
-  }, {}], 8: [function (require, module, exports) {
+  }, {}], 9: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -887,7 +1188,11 @@
         value: function keypress(e) {
           switch (e.keyCode) {
             case 80:
-              this.game.state !== 'paused' ? this.game.state = 'paused' : this.game.state = 'survival';
+              this.game.state !== 'paused' ? this.game.state = 'paused' : this.game.state = 'survival';break;
+            case 71:
+              this.game.gravity = !this.game.gravity;break;
+            case 65:
+              this.game.repel = !this.game.repel;break;
           }
         }
       }]);
@@ -896,12 +1201,22 @@
     }();
 
     exports.default = InputManager;
-  }, {}], 9: [function (require, module, exports) {
+  }, {}], 10: [function (require, module, exports) {
     "use strict";
 
     Object.defineProperty(exports, "__esModule", {
       value: true
     });
+
+    var _createClass = function () {
+      function defineProperties(target, props) {
+        for (var i = 0; i < props.length; i++) {
+          var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+        }
+      }return function (Constructor, protoProps, staticProps) {
+        if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+      };
+    }();
 
     function _classCallCheck(instance, Constructor) {
       if (!(instance instanceof Constructor)) {
@@ -909,15 +1224,157 @@
       }
     }
 
-    var InventoryManager = function InventoryManager() {
-      _classCallCheck(this, InventoryManager);
+    var InventoryItem = function () {
+      function InventoryItem(name, quantity) {
+        _classCallCheck(this, InventoryItem);
 
-      this.playerInventory = [];
-      this.coins = 0;
-    };
+        this.quantity = quantity;
+        this.name = name;
+      }
+
+      _createClass(InventoryItem, [{
+        key: "addTo",
+        value: function addTo(quantity) {
+          this.quanitity += quantity;
+        }
+      }, {
+        key: "getAsItemSchema",
+        value: function getAsItemSchema() {
+          var quantity = this.quantity,
+              name = this.name;
+
+          return { quantity: quantity, name: name };
+        }
+      }, {
+        key: "saveToPlayer",
+        value: function saveToPlayer(player) {
+          player.inventory.push(this.getAsItemSchema());
+        }
+      }]);
+
+      return InventoryItem;
+    }();
+
+    exports.default = InventoryItem;
+  }, {}], 11: [function (require, module, exports) {
+    'use strict';
+
+    Object.defineProperty(exports, "__esModule", {
+      value: true
+    });
+
+    var _createClass = function () {
+      function defineProperties(target, props) {
+        for (var i = 0; i < props.length; i++) {
+          var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+        }
+      }return function (Constructor, protoProps, staticProps) {
+        if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+      };
+    }();
+
+    var _stubInventory = require('./stub-inventory');
+
+    var _stubInventory2 = _interopRequireDefault(_stubInventory);
+
+    var _inventoryItem = require('./inventory-item');
+
+    var _inventoryItem2 = _interopRequireDefault(_inventoryItem);
+
+    function _interopRequireDefault(obj) {
+      return obj && obj.__esModule ? obj : { default: obj };
+    }
+
+    function _classCallCheck(instance, Constructor) {
+      if (!(instance instanceof Constructor)) {
+        throw new TypeError("Cannot call a class as a function");
+      }
+    }
+
+    var InventoryManager = function () {
+      function InventoryManager(parent) {
+        _classCallCheck(this, InventoryManager);
+
+        var isDev = window.deployment === 'development';
+        this.game = parent;
+        this.playerInventory = isDev ? _stubInventory2.default : [];
+        this.coins = 0;
+        if (!isDev) {
+          this.getInventoryFromDB();
+        }
+      }
+
+      _createClass(InventoryManager, [{
+        key: 'getInventoryFromDB',
+        value: function getInventoryFromDB() {
+          var self = this;
+          var _game = this.game,
+              username = _game.username,
+              _id = _game._id;
+
+          $.post(window.location.origin + '/dots/get-player', { username: username, _id: _id }, function (data) {
+            if (data.length === 0) {
+              return false;
+            }
+            self.coins = parseInt(data[0].coins);
+
+            self.playerInventory = data[0].playerInventory.map(function (item) {
+              var name = item.name,
+                  quantity = item.quantity;
+
+              return { name: name, quantity: parseInt(quantity) };
+            });
+          });
+        }
+      }, {
+        key: 'updateItem',
+        value: function updateItem(item) {
+          var playerInventory = this.playerInventory;
+
+          this.playerInventory = playerInventory.map(function (ownedItem) {
+            return item.name === ownedItem.name ? new _inventoryItem2.default(item.name, ownedItem.quantity + item.quantity) : ownedItem;
+          });
+        }
+      }, {
+        key: 'addCoins',
+        value: function addCoins(quantity) {
+          this.coins += quantity;
+        }
+      }, {
+        key: 'push',
+        value: function push(item) {
+          var playerInventory = this.playerInventory;
+
+          var hasItem = playerInventory.filter(function (ownedItem) {
+            return ownedItem.name === item.name;
+          }).length > 0;
+
+          if (hasItem) {
+            this.updateItem(item);
+          } else {
+            playerInventory.push(new _inventoryItem2.default(item.name, item.quantity));
+          }
+        }
+      }]);
+
+      return InventoryManager;
+    }();
 
     exports.default = InventoryManager;
-  }, {}], 10: [function (require, module, exports) {
+  }, { "./inventory-item": 10, "./stub-inventory": 17 }], 12: [function (require, module, exports) {
+    'use strict';
+
+    Object.defineProperty(exports, "__esModule", {
+      value: true
+    });
+    exports.default = {
+      hydrogen: { path: '/images/hydrogen.png', xOffSet: 1, yOffSet: 1, wOffSet: 1, hOffSet: 1 },
+      helium: { path: '/images/helium.png', xOffSet: 1, yOffSet: 1, wOffSet: 1, hOffSet: 1 },
+      beryllium: { path: '/images/beryllium.png', xOffSet: 1, yOffSet: 1, wOffSet: 1, hOffSet: 1 },
+      lithium: { path: '/images/lithium.png', xOffSet: 1, yOffSet: 1, wOffSet: 1, hOffSet: 1 },
+      coin: { path: '/images/coin.png', xOffSet: 1, yOffSet: 1, wOffSet: 1, hOffSet: 1 }
+    };
+  }, {}], 13: [function (require, module, exports) {
     "use strict";
 
     Object.defineProperty(exports, "__esModule", {
@@ -978,14 +1435,14 @@
     }();
 
     exports.default = MenuItem;
-  }, {}], 11: [function (require, module, exports) {
+  }, {}], 14: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
       value: true
     });
     exports.default = [{ path: '/images/red-devil-skin.png', xOffSet: 1.3, yOffSet: 2, wOffSet: 2.7, hOffSet: 2 }, { path: '/images/green-goat.png', xOffSet: 1, yOffSet: 1, wOffSet: 2, hOffSet: 1 }, { path: '/images/blueface.png', xOffSet: 1, yOffSet: 1, wOffSet: 2, hOffSet: 1 }];
-  }, {}], 12: [function (require, module, exports) {
+  }, {}], 15: [function (require, module, exports) {
     "use strict";
 
     Object.defineProperty(exports, "__esModule", {
@@ -1001,7 +1458,7 @@
           B = f & 0x0000FF;
       return "#" + (0x1000000 + (Math.round((t - R) * p) + R) * 0x10000 + (Math.round((t - G) * p) + G) * 0x100 + (Math.round((t - B) * p) + B)).toString(16).slice(1);
     }
-  }, {}], 13: [function (require, module, exports) {
+  }, {}], 16: [function (require, module, exports) {
     "use strict";
 
     Object.defineProperty(exports, "__esModule", {
@@ -1009,7 +1466,14 @@
     });
     /* a sample high score data response from the server */
     exports.default = [{ "_id": "5a14d3365069fea02442183f", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "75" }, { "_id": "5a15b44fe094b7a08d1d3171", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "31" }, { "_id": "5a14d3615069fea024421840", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "30" }, { "_id": "5a14d2e45069fea02442183d", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "28" }, { "_id": "5a15b280e094b7a08d1d316d", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "24" }, { "_id": "5a14d2f45069fea02442183e", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "21" }, { "_id": "5a15b351e094b7a08d1d316e", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "174" }, { "_id": "5a15b436e094b7a08d1d3170", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "168" }, { "_id": "5a15b265e094b7a08d1d316b", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "15" }, { "_id": "5a15b26ce094b7a08d1d316c", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "12" }, { "_id": "5a15b25de094b7a08d1d316a", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "11" }, { "_id": "5a15b38fe094b7a08d1d316f", "username": "John", "playerId": "5a14b46c411b829a380620be", "score": "10" }];
-  }, {}], 14: [function (require, module, exports) {
+  }, {}], 17: [function (require, module, exports) {
+    "use strict";
+
+    Object.defineProperty(exports, "__esModule", {
+      value: true
+    });
+    exports.default = [{ name: "hydrogen", quantity: 1 }, { name: "lithium", quantity: 1 }, { name: "helium", quantity: 1 }, { name: "beryllium", quantity: 1 }];
+  }, {}], 18: [function (require, module, exports) {
     "use strict";
 
     Object.defineProperty(exports, "__esModule", {
@@ -1047,13 +1511,18 @@
       _createClass(TextAnimation, [{
         key: "draw",
         value: function draw(ctx) {
+          var text = this.text,
+              x = this.x,
+              y = this.y,
+              end = this.end;
+
           ctx.beginPath();
           ctx.fillStyle = 'yellow';
           ctx.font = "30px Arial";
-          ctx.fillText(this.text, this.x, this.y);
+          ctx.fillText(text, x, y);
           ctx.closePath();
           this.y -= 5;
-          if (this.end < new Date().getTime()) {
+          if (end < new Date().getTime()) {
             this.destroy = true;
           }
         }
@@ -1063,7 +1532,7 @@
     }();
 
     exports.default = TextAnimation;
-  }, {}], 15: [function (require, module, exports) {
+  }, {}], 19: [function (require, module, exports) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -1076,21 +1545,21 @@
     }
 
     function getCookie(cname) {
-      var name = cname + "=";
+      var name = cname + '=';
       var decodedCookie = decodeURIComponent(document.cookie);
       var ca = decodedCookie.split(';');
       for (var i = 0; i < ca.length; i++) {
         var c = ca[i];
-        while (c.charAt(0) == ' ') {
+        while (c.charAt(0) === ' ') {
           c = c.substring(1);
         }
-        if (c.indexOf(name) == 0) {
+        if (c.indexOf(name) === 0) {
           return c.substring(name.length, c.length);
         }
       }
-      return "";
+      return '';
     }
-  }, {}], 16: [function (require, module, exports) {
+  }, {}], 20: [function (require, module, exports) {
     'use strict';
 
     var _game = require('./game/game');
@@ -1104,4 +1573,4 @@
     window.onload = function () {
       return new _game2.default().run();
     };
-  }, { "./game/game": 3 }] }, {}, [16]);
+  }, { "./game/game": 3 }] }, {}, [20]);

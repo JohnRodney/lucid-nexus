@@ -15,17 +15,11 @@ router.get('/dots', (req, res) => {
   res.sendFile(path.join(__dirname, '../../src/games/dots/', 'index.html'));
 });
 
-router.get('/images/red-devil-skin.png', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../src/games/dots/', 'red-devil-skin.png'));
-});
-
-router.get('/images/blueface.png', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../src/games/dots/', 'blueface.png'));
-});
-
-router.get('/images/green-goat.png', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../src/games/dots/', 'green-goat.png'));
-});
+['red-devil-skin.png', 'blueface.png', 'green-goat.png', 'coin.png', 'helium.png', 'hydrogen.png', 'lithium.png', 'beryllium.png'].forEach(image => {
+  router.get(`/images/${image}`, (req, res) => {
+    res.sendFile(path.join(__dirname, '../../src/games/dots/', image));
+  });
+})
 
 router.get('/dots/bundle.js', (req, res) => {
   res.sendFile(path.join(__dirname, '../../src/games/dots/', 'bundle.js'));
@@ -67,11 +61,19 @@ router.get('/dots/highscores', (req, res) => {
 
   MongoClient.connect(devMongoURI)
     .then((connectedDb) => connectedDb.collection('dots').find().toArray())
-    .then(result => res.send(result.sort(function(a, b) {
-    return parseFloat(a.score) - parseFloat(b.score);
-}).reverse()))
+    .then(result => res.send(result.sort((a, b) => parseFloat(a.score) - parseFloat(b.score)).reverse()))
     .catch(err => console.log('error while fetching currency data', err));
 });
+
+router.post('/dots/get-player', (req, res) => {
+  const { body } = req;
+
+  MongoClient.connect(devMongoURI)
+    .then((connectedDb) => connectedDb.collection('dots-player').find({ _id: body._id }).toArray())
+    .then(result => res.send(result))
+    .catch(err => console.log('error while fetching currency data', err));
+});
+
 router.post('/sign-up', (req, res) => {
   const { body } = req;
 
@@ -102,6 +104,16 @@ router.post('/dots/highscore', (req, res) => {
   MongoClient.connect(devMongoURI)
     .then((connectedDb) => connectedDb.collection('dots').insert(body))
     .then(result => res.send(result.ops[0]))
+    .catch(err => console.log('error while fetching currency data', err));
+});
+
+
+router.post('/dots/player', (req, res) => {
+  const { body } = req;
+
+  MongoClient.connect(devMongoURI)
+    .then((connectedDb) => connectedDb.collection('dots-player').update({ _id: body._id }, body, { upsert: true }))
+    .then(result => res.send(result))
     .catch(err => console.log('error while fetching currency data', err));
 });
 
